@@ -1,8 +1,14 @@
-"""Research Tools.
+"""Research tools for the deep research example.
 
-This module provides search and content processing utilities for the research agent,
-using Tavily for URL discovery and fetching full webpage content.
+This module intentionally avoids constructing external API clients at import time.
+Render imports the ASGI app during startup, and eager Tavily initialization would
+crash the process before the service can bind to its port when `TAVILY_API_KEY`
+is not configured yet.
 """
+
+from __future__ import annotations
+
+import os
 
 import httpx
 from langchain_core.tools import InjectedToolArg, tool
@@ -10,7 +16,15 @@ from markdownify import markdownify
 from tavily import TavilyClient
 from typing_extensions import Annotated, Literal
 
-tavily_client = TavilyClient()
+
+def _get_tavily_client() -> TavilyClient:
+    """Create the Tavily client lazily so startup does not require API keys."""
+    api_key = os.getenv("TAVILY_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "TAVILY_API_KEY is not configured. Set it in Render before using /invoke."
+        )
+    return TavilyClient(api_key=api_key)
 
 
 def fetch_webpage_content(url: str, timeout: float = 10.0) -> str:
@@ -55,6 +69,8 @@ def tavily_search(
     Returns:
         Formatted search results with full webpage content
     """
+    tavily_client = _get_tavily_client()
+
     # Use Tavily to discover URLs
     search_results = tavily_client.search(
         query,

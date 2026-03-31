@@ -1,0 +1,6 @@
+# Root requirements for deploying the deep_research example from this monorepo.
+# Render builds from the repository root, so we install:
+# - the local deepagents SDK
+# - the deployable deep_research example and its runtime dependencies
+-e ./libs/deepagents
+-e ./examples/deep_research
